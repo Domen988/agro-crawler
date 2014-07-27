@@ -4,80 +4,114 @@ import lxml.html as lh
 import sys
 import codecs
 import webbrowser
+import csv
+import re
+import xml.etree.ElementTree as ET
+from xml.dom.minidom import parse
+from cStringIO import StringIO
+from lxml import etree
+import os
 
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-
-
-
-agrometHome = 'http://agromet.mko.gov.si'
+##########################################################################################################
+agrometHome = 'http://agromet.mko.gov.si'                                # Naslovi
 agrometStations = '/APP/Home/METEO/-1'
+exportLink = "/APP/Tag/Export/"             
+dataLink = "http://agromet.mko.gov.si/APP/Content/Exports/" 
+fileExtension = "60_.xml"                                                 # 30_.xml, 60_.xml, 24_.xml
+##########################################################################################################
+
 connection = urllib.urlopen(agrometHome + agrometStations)
-
 dom =  lh.fromstring(connection.read())
+firstLocation = None
+for link in dom.xpath('//a/@href'):                                      # select the url in href for all a tags(links)
+    if link.startswith(exportLink):                         
+        stationID = link.split("/")[-1]
 
-for link in dom.xpath('//a/@href'):                                    # select the url in href for all a tags(links)
-    #print link
-    if link == "/APP/Tag/Export/262":                            # test 19,2
-        print link
-        print "-----"
-        stationLink = link
-        conStation = urllib.urlopen(agrometHome + stationLink)
+        #if stationID != "2" and stationID != "262":                                             # filter for testing purposes
+        #    continue
 
-        domStation = lh.fromstring(conStation.read())
+        print "-------------"
+        print "Station ID:", stationID
+        print "List of MonthYear options:"
+        connectionStation = urllib.urlopen(agrometHome + link)
+        domOptions = connectionStation.read().decode("utf8")
+        resultOptions = re.findall('<option value="(.*)">', domOptions)   # search for option value using regex, IS THERE ANOTHER WAY?
+        for option in resultOptions:
+            if option:
+                print option.encode("utf8")
+        print "-------------"
+        ##################################################################################################
+        fileName = stationID + ".xml"                                     # file name
+        ##################################################################################################
 
-        for link in domStation.xpath('//a/@href'):
-            print link
+        first = None
 
-        payload = {"LocationID":"262","LocationName":"Arti?e","DeviceCode":"42800","MonthYear":"6.2014"}
-        r = requests.post(agrometHome + stationLink, params=payload)
-        print r.text
+        for option in reversed(resultOptions):
+            if option.split(".")[-1] != "2014":                           # exclude all non-2014 data
+                continue
+            try:
+                #if option != "1.2014" and option != "2.2014":             # filter for testing purposes
+                #    continue
 
-          ##  Kaj pravi Jasna:
-          ##  treba bo iskat po r.text z regex ali pythonovimi string metodami.
-          ##  elegantneje ne bo slo, ker tip uporablja ajax(-e ?). Request ne vrne novega url-ja, pac pa na isti url nalozi novo vsebino
+                payload = {"LocationID":stationID,"MonthYear":option}     # input for form for MonthYear selection
+                r = requests.post(agrometHome + link, params=payload)
 
+                result = re.search("/Content/Exports/(.*)" + fileExtension, r.text)  # search for the right xml file                       
+                if result:
+                    print result.group(1)
+                else:
+                    print "There was no file retrieved from regex search."
 
-        print "---"
-        ret = dir(r)
-        print ret
-        print "'''"
-        print r.links
-        print r.url
+                dataURL = dataLink + result.group(1) + fileExtension          
+                s = urllib.urlopen(dataURL)
+                xmlString = s.read()                                                      # https://docs.python.org/2/library/xml.etree.elementtree.html
+                tree = ET.ElementTree(ET.fromstring(xmlString))
+                root = tree.getroot()
+                root1 = root
+                for Location in root.findall('Location'):                             # remove 'Location' header. No important info in there
+                    root.remove(Location)
 
-        print "w'''"
+                if first is None:                                            # creates xml or extends existing
+                    first = root                                             #
+                else:                                                        #
+                    first.extend(root)                                       #
 
-        ####################
-        #from BeautifulSoup import BeautifulSoup
+            except:
+                print "Option :'", option, "' did not return data."
+            print "-------------"
+        ##################################################################################################
+        subdirectory = "Agrometeo Data"                                      # subdirectory name
+        try:
+            os.mkdir(subdirectory)                                           # use of mkdir: if subd. exists,
+        except Exception:                                                    # it doesn't do anything
+            pass
+        file= stationID + ".xml"                                             # file name
+        path=os.path.join(subdirectory, file)
+        ##################################################################################################
+        fp=open(path,'w');
+        tree = ET.ElementTree(first)
+        tree.write(fp)
+        fp.close()
+
         #
-        #import urllib2 
-        #
-        #
-        #soup = BeautifulSoup(r.text)
-        #
-        #links = soup.findAll("a")
-        #
-        #print links
-        ###################################
-        #domData = lh.fromstring(f.read())
-        #for link in domData.xpath('//a/@href'):
-        #    print link
-        #    
-        
-        #print(r.decode('utf-8').encode('cp850','replace').decode('cp850'))
- 
+        # Next piece of code collects location data in 'Location.xml'. It uses same subdirectory as for meteo data.
+        s = urllib.urlopen(dataURL)
+        xmlString = s.read()                                                      
+        tree = ET.ElementTree(ET.fromstring(xmlString))
+        root = tree.getroot()
 
-        #print r
-
-
-        #webbrowser.open(agrometHome + stationLink)
-
-
-    """
-for element, attribute, link, pos in dom.iterlinks():
-    if link[0:19] == "/APP/Detail/METEO/2":
-        print "----"
-        print "ele", element
-        print "att", attribute
-        print "lnk", link
-        print "pos", pos
-        """
+        for DATA in root.findall('DATA'):                             # remove 'DATA', so that 'Location' element stays
+            root.remove(DATA)
+               
+        if firstLocation is None:                                     # creates xml or extends existing
+            firstLocation = root                                      #
+        else:                                                         #
+            firstLocation.extend(root)                                #
+##################################################################################################
+file= "Location" + ".xml"                                             # file name
+path=os.path.join(subdirectory, file)
+##################################################################################################
+fp=open(path,'w');
+tree = ET.ElementTree(firstLocation)
+tree.write(fp, encoding="UTF-8")
+fp.close()
