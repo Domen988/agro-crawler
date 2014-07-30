@@ -11,7 +11,7 @@ from xml.dom.minidom import parse
 from cStringIO import StringIO
 from lxml import etree
 import os
-
+# test line
 
 ##########################################################################################################
 agrometHome = 'http://agromet.mko.gov.si'                                # Naslovi
@@ -111,7 +111,7 @@ for link in dom.xpath('//a/@href'):                                      # selec
             else:
                 print "Data was not written for station ID:", stationID
                 fp = open(logPath, "a")                                        # write to error log.txt
-                fp.write(stationID + ".xml was not written.")
+                fp.write(stationID + ".xml was not written." + "\n")
                 fp.close()
         except:
             print "Data was not written for station ID:", stationID
