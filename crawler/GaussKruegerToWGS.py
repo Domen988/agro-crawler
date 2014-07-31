@@ -1,4 +1,6 @@
-__author__ = 'Domen'
+# found  on Github,
+# https://github.com/okin/GKConverter
+
 from math import cos, pi, sqrt, tan, sin, atan
 
 def convert_GK_to_lat_long(right, height, use_wgs84=None):
