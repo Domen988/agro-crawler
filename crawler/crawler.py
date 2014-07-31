@@ -11,14 +11,15 @@ from xml.dom.minidom import parse
 from cStringIO import StringIO
 from lxml import etree
 import os
-# test line
+import datetime
 
 ##########################################################################################################
 agrometHome = 'http://agromet.mko.gov.si'                                # Naslovi
 agrometStations = '/APP/Home/METEO/-1'
 exportLink = "/APP/Tag/Export/"             
 dataLink = "http://agromet.mko.gov.si/APP/Content/Exports/" 
-fileExtension = "60_.xml"                                                 # 30_.xml, 60_.xml, 24_.xml
+fileExtensionXML = "60_.xml"                                                 # 30_.xml, 60_.xml, 24_.xml
+fileExtensionDAT =  "60_.dat"
 subdirectory = "Agrometeo Data"                                           # subdirectory name
 ##########################################################################################################
 
@@ -41,6 +42,7 @@ if List:
 connection = urllib.urlopen(agrometHome + agrometStations)
 dom =  lh.fromstring(connection.read())
 firstLocation = None
+sessionFlag = False                                                     # session flag for error log creation
 for link in dom.xpath('//a/@href'):                                      # select the url in href for all a tags(links)
     if link.startswith(exportLink):                         
         stationID = link.split("/")[-1]
@@ -58,9 +60,7 @@ for link in dom.xpath('//a/@href'):                                      # selec
         #    if option:
         #        print option.encode("utf8")
         print "-------------"
-        ##################################################################################################
-        fileName = stationID + ".xml"                                     # file name
-        ##################################################################################################
+
 
         first = None
 
@@ -74,14 +74,14 @@ for link in dom.xpath('//a/@href'):                                      # selec
                 payload = {"LocationID":stationID,"MonthYear":option}     # input for form for MonthYear selection
 
                 r = requests.post(agrometHome + link, params=payload)
-                result = re.search("/Content/Exports/(.*)" + fileExtension, r.text)  # search for the right xml file                       
+                result = re.search("/Content/Exports/(.*)" + fileExtensionXML, r.text)  # search for the right xml file
                 if result:
                 #    print result.group(1)
                     pass
                 else:
                     print "There was no file retrieved from regex search for option:", option
-                    pass
-                dataURL = dataLink + result.group(1) + fileExtension          
+                    print "Trying with .dat"
+                dataURL = dataLink + result.group(1) + fileExtensionXML
                 s = urllib.urlopen(dataURL)
                 xmlString = s.read()                                                      # https://docs.python.org/2/library/xml.etree.elementtree.html
                 tree = ET.ElementTree(ET.fromstring(xmlString))
@@ -98,19 +98,21 @@ for link in dom.xpath('//a/@href'):                                      # selec
             except:
                 print "Option :'", option, "' did not return data."
         ##################################################################################################
-        file= stationID + ".xml"                                             # file name
-        path=os.path.join(subdirectory, file)
+        path = os.path.join(subdirectory, file)
         logPath = os.path.join(subdirectory, "ErrorLog.txt")                  # error log file name
         ##################################################################################################
         try:
             if first is not None:
-                fp=open(path,'w')
+                fp = open(path,'w')
                 tree = ET.ElementTree(first)
                 tree.write(fp)
                 fp.close()
             else:
-                print "Data was not written for station ID:", stationID
+                print "Data was not written for station ID:", stationID, "See error log for details."
                 fp = open(logPath, "a")                                        # write to error log.txt
+                if sessionFlag is False:
+                    fp.write(str(datetime.datetime.now()) + "\n")
+                    sessionFlag = True
                 fp.write(stationID + ".xml was not written." + "\n")
                 fp.close()
         except:

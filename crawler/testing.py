@@ -1,16 +1,9 @@
-from BeautifulSoup import BeautifulSoup
-import os
-import urllib2 
-url = urllib2.urlopen("http://agromet.mko.gov.si/APP/Tag/Export/262")
+import GaussKruegerToWGS
 
+right = 396678
+height = 91724
+right += 5000000
+height += 5000000
 
-
-subdirectory = "Agrometeo Data"                                           # subdirectory name
-xmlList = os.listdir(subdirectory)
-for file in xmlList:
-    filePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), subdirectory, file)
-    if os.stat(filePath)[6]==0:
-        os.remove(filePath)
-        print "%s deleted", file
-    else:
-        pass
+r1, y1, = GaussKruegerToWGS.convert_GK_to_lat_long(right, height, use_wgs84=None)
+print r1, y1
