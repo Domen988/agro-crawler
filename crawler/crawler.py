@@ -19,7 +19,7 @@ agrometStations = '/APP/Home/METEO/-1'
 exportLink = "/APP/Tag/Export/"             
 dataLink = "http://agromet.mko.gov.si/APP/Content/Exports/" 
 fileExtensionXML = "60_.xml"                                                 # 30_.xml, 60_.xml, 24_.xml
-fileExtensionDAT =  "60_.dat"
+fileExtensionDAT =  "60_MVal.dat"
 subdirectory = "Agrometeo Data"                                           # subdirectory name
 ##########################################################################################################
 
@@ -27,27 +27,30 @@ try:
     os.mkdir(subdirectory)                                           # use of mkdir: if subd. exists,
 except Exception:                                                    # it doesn't do anything
     pass
-xmlList = os.listdir(subdirectory)
-for file in xmlList:
-    file = os.path.splitext(file)[0]
-List = [os.path.splitext(file)[0] for file in xmlList]
+datList = []
+for file in os.listdir(subdirectory):
+    if file.endswith(".dat"):
+        datList.append(os.path.splitext(file))
 
-if List:
-    print "Some xml Data allready exists. Script will skip next stations:"
-    for ID in List:
+
+if datList:
+    print "Some .dat Data allready exists. Script will skip next stations:"
+    for ID in datList:
         print ID
     print "Location file is not valid!"
     print "------------------------"
+else:
+    print "No files with ending '.dat' found in project subdirectory", subdirectory
 
 connection = urllib.urlopen(agrometHome + agrometStations)
-dom =  lh.fromstring(connection.read())
+dom = lh.fromstring(connection.read())
 firstLocation = None
 sessionFlag = False                                                     # session flag for error log creation
 for link in dom.xpath('//a/@href'):                                      # select the url in href for all a tags(links)
     if link.startswith(exportLink):                         
         stationID = link.split("/")[-1]
 
-        if stationID in List:                                             # filter for testing purposes
+        if stationID in datList:                                             # filter for testing purposes
             continue
 
         print "-------------"
@@ -62,7 +65,7 @@ for link in dom.xpath('//a/@href'):                                      # selec
         print "-------------"
 
 
-        first = None
+        first = ""
 
         for option in reversed(resultOptions):
             if option.split(".")[-1] != "2014":                           # exclude all non-2014 data
@@ -71,41 +74,38 @@ for link in dom.xpath('//a/@href'):                                      # selec
                 #if option != "1.2014" and option != "2.2014":             # filter for testing purposes
                 #    continue
 
-                payload = {"LocationID":stationID,"MonthYear":option}     # input for form for MonthYear selection
+                payload = {"LocationID": stationID, "MonthYear": option}     # input for form for MonthYear selection
 
                 r = requests.post(agrometHome + link, params=payload)
-                result = re.search("/Content/Exports/(.*)" + fileExtensionXML, r.text)  # search for the right xml file
+                result = re.search("/Content/Exports/(.*)" + fileExtensionDAT, r.text)  # search for the right dat file
                 if result:
-                #    print result.group(1)
+                   #print result.group(1)
                     pass
                 else:
                     print "There was no file retrieved from regex search for option:", option
-                    print "Trying with .dat"
-                dataURL = dataLink + result.group(1) + fileExtensionXML
-                s = urllib.urlopen(dataURL)
-                xmlString = s.read()                                                      # https://docs.python.org/2/library/xml.etree.elementtree.html
-                tree = ET.ElementTree(ET.fromstring(xmlString))
-                root = tree.getroot()
+                dataURL = dataLink + result.group(1) + fileExtensionDAT
+                urllib.urlretrieve(dataURL, 'temp.dat')
+                search = os.listdir('.')
+                while dir in search:
+                    if dir is 'temp.dat':
+                        pass
 
-                for Location in root.findall('Location'):                             # remove 'Location' header. No important info in there
-                    root.remove(Location)
-
-                if first is None:                                            # creates xml or extends existing
-                    first = root                                             #
-                else:                                                        #
-                    first.extend(root)                                       #
-
+                fp = open('temp.dat')
+                for line in fp.readlines()[1:]:
+                    first += line
+                fp.close()
+                os.remove('temp.dat')
             except:
                 print "Option :'", option, "' did not return data."
         ##################################################################################################
-        path = os.path.join(subdirectory, file)
+        filePath = os.path.join(subdirectory, stationID + ".dat")
         logPath = os.path.join(subdirectory, "ErrorLog.txt")                  # error log file name
         ##################################################################################################
         try:
             if first is not None:
-                fp = open(path,'w')
-                tree = ET.ElementTree(first)
-                tree.write(fp)
+                fp = open(filePath, 'w')
+                fp.write(first)
+
                 fp.close()
             else:
                 print "Data was not written for station ID:", stationID, "See error log for details."
@@ -113,7 +113,7 @@ for link in dom.xpath('//a/@href'):                                      # selec
                 if sessionFlag is False:
                     fp.write(str(datetime.datetime.now()) + "\n")
                     sessionFlag = True
-                fp.write(stationID + ".xml was not written." + "\n")
+                fp.write(stationID + ".dat was not written." + "\n")
                 fp.close()
         except:
             print "Data was not written for station ID:", stationID
@@ -125,13 +125,13 @@ for link in dom.xpath('//a/@href'):                                      # selec
         # Next piece of code collects location data in 'Location.xml'. It saves in same subdirectory as for meteo data.
         try:
             s = urllib.urlopen(dataURL)
-            xmlString = s.read()                                                      
+            xmlString = s.read()
             tree = ET.ElementTree(ET.fromstring(xmlString))
             root = tree.getroot()
 
             for DATA in root.findall('DATA'):                             # remove 'DATA', so that 'Location' element stays
                 root.remove(DATA)
-               
+
             if firstLocation is None:                                     # creates xml or extends existing
                 firstLocation = root                                      #
             else:                                                         #
