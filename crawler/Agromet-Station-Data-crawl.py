@@ -30,21 +30,24 @@ except Exception:                                                    # it doesn'
 datList = []
 for file in os.listdir(subdirectory):
     if file.endswith(".dat"):
-        datList.append(os.path.splitext(file))
+        datList.append(os.path.splitext(file)[0])
 
-
+print "###############################################################################"
+print "Agromet station data crawler"
+print "crawls", agrometHome, "and extracts data of all measurements with 1h frequency "
+print "all data is saved in subdirectory:", subdirectory
+print "################################################################################"
 if datList:
-    print "Some .dat Data allready exists. Script will skip next stations:"
+    print "Some .dat data allready exists. Script will skip next stations:"
     for ID in datList:
         print ID
-    print "Location file is not valid!"
-    print "------------------------"
 else:
     print "No files with ending '.dat' found in project subdirectory", subdirectory
 
 connection = urllib.urlopen(agrometHome + agrometStations)
 dom = lh.fromstring(connection.read())
 firstLocation = None
+first = ""
 sessionFlag = False                                                     # session flag for error log creation
 for link in dom.xpath('//a/@href'):                                      # select the url in href for all a tags(links)
     if link.startswith(exportLink):                         
@@ -53,7 +56,6 @@ for link in dom.xpath('//a/@href'):                                      # selec
         if stationID in datList:                                             # filter for testing purposes
             continue
 
-        print "-------------"
         print "Station ID:", stationID
         #print "List of MonthYear options:"
         connectionStation = urllib.urlopen(agrometHome + link)
@@ -63,7 +65,6 @@ for link in dom.xpath('//a/@href'):                                      # selec
         #    if option:
         #        print option.encode("utf8")
         print "-------------"
-
 
         first = ""
 
@@ -105,7 +106,6 @@ for link in dom.xpath('//a/@href'):                                      # selec
             if first is not None:
                 fp = open(filePath, 'w')
                 fp.write(first)
-
                 fp.close()
             else:
                 print "Data was not written for station ID:", stationID, "See error log for details."
@@ -117,9 +117,12 @@ for link in dom.xpath('//a/@href'):                                      # selec
                 fp.close()
         except:
             print "Data was not written for station ID:", stationID
-
-
-        """
+if first is "":
+    print "-------------"
+    print "No files were written."
+os.remove('requests_results.html')
+os.remove('results.html')
+"""
 
         #
         # Next piece of code collects location data in 'Location.xml'. It saves in same subdirectory as for meteo data.
