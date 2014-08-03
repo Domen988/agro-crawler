@@ -15,6 +15,8 @@ def gauss_krueger_transformation(right, height):
 
     :rtype : object
     """
+    right += 5000000
+    height += 5000000
     if (not ((right > 1000000) and (height > 1000000))):
         raise ValueError("No valid Gauss-Kruger-Code.")
 
