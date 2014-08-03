@@ -1,15 +1,7 @@
 import urllib
 import requests
 import lxml.html as lh
-import sys
-import codecs
-import webbrowser
-import csv
 import re
-import xml.etree.ElementTree as ET
-from xml.dom.minidom import parse
-from cStringIO import StringIO
-from lxml import etree
 import os
 import datetime
 
@@ -86,6 +78,7 @@ for link in dom.xpath('//a/@href'):                                      # selec
                     print "There was no file retrieved from regex search for option:", option
                 dataURL = dataLink + result.group(1) + fileExtensionDAT
                 urllib.urlretrieve(dataURL, 'temp.dat')
+
                 search = os.listdir('.')
                 while dir in search:
                     if dir is 'temp.dat':
@@ -120,8 +113,16 @@ for link in dom.xpath('//a/@href'):                                      # selec
 if first is "":
     print "-------------"
     print "No files were written."
-os.remove('requests_results.html')
-os.remove('results.html')
+try:
+    os.remove('requests_results.html')
+except:
+    pass
+try:
+    os.remove('results.html')
+
+except:
+    pass
+raw_input("Press Enter to continue...")
 """
 
         #
