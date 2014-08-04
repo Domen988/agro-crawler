@@ -24,11 +24,11 @@ for file in os.listdir(subdirectory):
     if file.endswith(".dat"):
         datList.append(os.path.splitext(file)[0])
 
-print "###############################################################################"
+print "....................................................................................."
 print "Agromet station data crawler"
 print "crawls", agrometHome, "and extracts data of all measurements with 1h frequency "
 print "all data is saved in subdirectory:", subdirectory
-print "################################################################################"
+print "....................................................................................."
 if datList:
     print "Some .dat data allready exists. Script will skip next stations:"
     for ID in datList:
