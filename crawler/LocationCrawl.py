@@ -55,18 +55,22 @@ for station_ID in datList:
         url = gis_url + str(station_ID)
         driver = Firefox()
         driver.get(url)
-        time.sleep(12)
+        time.sleep(9)
         full_url = driver.current_url
         driver.close()
         stationX_GK = float((re.search("map_x=(.*?)&", full_url)).group(1))
         stationY_GK = float((re.search("map_y=(.*?)&", full_url)).group(1))
 
         stationX_WGS, stationY_WGS = convert_GK_to_lat_long(stationX_GK, stationY_GK)
-        stationGEO = []
+        #stationGEO = []
 
-        stationGEO.append((station_ID, stationX_WGS, stationY_WGS))
+        #stationGEO.append((station_ID, stationX_WGS, stationY_WGS))
+
         fp = open(filePath, 'a')
-        fp.write('\n'.join('%s, %s, %s' % x for x in stationGEO))
+        #fp.write('\n'.join('%s, %s, %s' % x for x in stationGEO))
+        a = (station_ID, stationX_WGS, stationY_WGS)
+        print a
+        fp.write('\n' + ', '.join(str(i) for i in a))
         fp.close()
     except:
         print "something not ok with station:", station_ID
