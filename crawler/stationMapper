@@ -1,0 +1,97 @@
+import urllib
+import webbrowser
+import os
+
+
+##########################################################################################
+URLheader = 'http://maps.googleapis.com/maps/api/staticmap?center=Ljubljana&zoom=2&scale=2&size=640x640&maptype=roadmap&markers=color:red'
+subdirectory = "Agrometeo Data"
+fileName = "stations_Geo_location.txt"
+HTMLmap = 'Stations map.html'
+##########################################################################################
+
+
+filePath = os.path.join(subdirectory, fileName)
+fp = open(filePath, 'r')
+lines = fp.readlines()
+fp.close()
+
+f = open(HTMLmap,'w')
+
+header = """<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Simple markers</title>
+    <style>
+      html, body, #map-canvas {
+        height: 100%;
+        margin: 0px;
+        padding: 0px
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+    <script>
+function initialize() {
+  var centerLatlng = new google.maps.LatLng(46,14.5);
+  var mapOptions = {
+    zoom: 9,
+    center: centerLatlng
+  }
+  var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+"""
+
+footer = """
+google.maps.event.addDomListener(window, 'load', initialize);
+
+    </script>
+  </head>
+  <body>
+    <div id="map-canvas"></div>
+  </body>
+</html>
+"""
+
+body = ""
+switch = False
+for line in lines:
+    if switch == True:
+        continue
+    #switch = True
+
+    lineSplit = line.split(',')
+    if float(lineSplit[2]) <= 10:
+        lineSplit[2] = str(float(lineSplit[2]) + 9.85)
+        lineSplit[1] = str(float(lineSplit[1]) + 0.59)
+
+    body += "  var myLanLat = new google.maps.LatLng(" + "%.4f" % (float(lineSplit[1])) + ',' + "%.4f" % (float(lineSplit[2])) + ");"
+
+
+    body += """
+  var marker = new google.maps.Marker({
+      position: myLanLat,
+    """
+
+    body += "  icon:'https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld='+ '" + str(lineSplit[0]) + "'+'|FF776B|000000',"
+
+    body += """
+      map: map,
+      title: 'Hello World!'
+  });
+    """
+body += """
+}
+"""
+
+
+message = header + body + footer
+f.write(message)
+f.close()
+
+webbrowser.open(HTMLmap)
+
+
+
+
+
