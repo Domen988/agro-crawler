@@ -17,7 +17,7 @@ def gauss_krueger_transformation(right, height):
     """
     right += 5000000
     height += 5000000
-    if (not ((right > 1000000) and (height > 1000000))):
+    if (not ((right > 20) and (height > 20))):
         raise ValueError("No valid Gauss-Kruger-Code.")
 
     #Variables to prepare the geovalues

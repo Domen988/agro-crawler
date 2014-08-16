@@ -55,13 +55,14 @@ for station_ID in datList:
         url = gis_url + str(station_ID)
         driver = Firefox()
         driver.get(url)
-        time.sleep(9)
+        time.sleep(8)
         full_url = driver.current_url
         driver.close()
         stationX_GK = float((re.search("map_x=(.*?)&", full_url)).group(1))
         stationY_GK = float((re.search("map_y=(.*?)&", full_url)).group(1))
 
-        stationX_WGS, stationY_WGS = convert_GK_to_lat_long(stationX_GK, stationY_GK)
+        #stationX_WGS, stationY_WGS = convert_GK_to_lat_long(stationX_GK, stationY_GK)
+        stationX_WGS, stationY_WGS = stationX_GK, stationY_GK
         #stationGEO = []
 
         #stationGEO.append((station_ID, stationX_WGS, stationY_WGS))

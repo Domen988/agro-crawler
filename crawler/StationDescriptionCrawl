@@ -1,0 +1,70 @@
+import urllib
+import requests
+import lxml.html as lh
+import re
+import os
+import datetime
+
+##########################################################################################################
+agrometHome = 'http://agromet.mko.gov.si'                                # Naslovi
+agrometStations = '/APP/Home/METEO/-1'
+detailLink = "/APP/Detail/METEO/"
+subdirectory = "Agrometeo Data"                                           # subdirectory name
+detailFile = "Station detail.txt"
+##########################################################################################################
+
+try:
+    os.mkdir(subdirectory)                                           # use of mkdir: if subd. exists,
+except Exception:                                                    # it doesn't do anything
+    pass
+
+
+print "....................................................................................."
+print "Agromet station details crawler"
+print "crawls", agrometHome, "and extracts details of all stations "
+print "all data is saved in subdirectory:", subdirectory, "in file", detailFile
+print "....................................................................................."
+
+
+connection = urllib.urlopen(agrometHome + agrometStations)
+dom = lh.fromstring(connection.read())
+firstLocation = None
+first = ""
+sessionFlag = False                                                     # session flag for error log creation
+
+stationDetailList = []
+stationIDlist = []
+
+for link in dom.xpath('//a/@href'):                                      # select the url in href for all a tags(links)
+    if link.startswith(detailLink):
+        stationID = link.split("/")[-1]
+        if stationID is not None:
+            stationIDlist.append(int(stationID))
+
+
+stationIDlist.sort()
+print stationIDlist
+for stationID in stationIDlist:                                      # select the url in href for all a tags(links)
+    print "Station ID:", stationID
+    #print "List of MonthYear options:"
+    connectionStation = urllib.urlopen(agrometHome + detailLink + str(stationID))
+    domOptions = connectionStation.read().decode("utf8")
+    #tationName = re.find('Podatki o lokaciji <a"(.*)"/a></h2>', domOptions)
+    #stationName = re.find('>"(.*)"<', domOptions)
+    testis = re.findall('Podatki o lokaciji <a(.*?)/a></h2>', domOptions)
+    stationName = re.findall('>(.*)<', testis[0])
+    stationDescription = re.findall('\"vsebina\">([\s\S]*?)</div>', domOptions)#, re.DOTALL)
+    testis2 = re.findall('Nadmorska([\s\S]*?)</tr>', domOptions)
+
+    stationAltitude = re.findall('<td>([\s\S]*?)</td>', testis2[0])
+    stationDetail =  '|'.join((str(stationID), stationName[0], stationDescription[0].strip().replace('\n', ''), stationAltitude[0].strip())).encode("utf-8")
+    print stationDetail
+    print "-------------"
+
+    stationDetailList.append(stationDetail)
+
+
+fp = open(detailFile, 'wb')
+for item in stationDetailList:
+    fp.write("%s\n" % item)
+fp.close()

@@ -6,10 +6,14 @@ import os
 ##########################################################################################
 URLheader = 'http://maps.googleapis.com/maps/api/staticmap?center=Ljubljana&zoom=2&scale=2&size=640x640&maptype=roadmap&markers=color:red'
 subdirectory = "Agrometeo Data"
-fileName = "stations_Geo_location.txt"
+fileName = "Stations location - hand modified.txt"
 HTMLmap = 'Stations map.html'
 ##########################################################################################
 
+# hand modified stations locations procedure:
+# - extract GausKrueger coordinates from GIS
+# go to :http://www2.arnes.si/~gljsentvid10/gkvge_v48_v48.html
+# transform
 
 filePath = os.path.join(subdirectory, fileName)
 fp = open(filePath, 'r')
@@ -60,12 +64,9 @@ for line in lines:
         continue
     #switch = True
 
-    lineSplit = line.split(',')
-    if float(lineSplit[2]) <= 10:
-        lineSplit[2] = str(float(lineSplit[2]) + 9.85)
-        lineSplit[1] = str(float(lineSplit[1]) + 0.59)
+    lineSplit = line.split('\t')
 
-    body += "  var myLanLat = new google.maps.LatLng(" + "%.4f" % (float(lineSplit[1])) + ',' + "%.4f" % (float(lineSplit[2])) + ");"
+    body += "  var myLanLat = new google.maps.LatLng(" + "%.8f" % (float(lineSplit[1])) + ',' + "%.8f" % (float(lineSplit[2])) + ");"
 
 
     body += """
@@ -90,7 +91,7 @@ f.write(message)
 f.close()
 
 webbrowser.open(HTMLmap)
-
+#
 
 
 
